@@ -10,17 +10,15 @@ class Bot:
         if game_message.cannon.cooldown > 0:
             return []
 
-        world_width: int = game_message.constants.world.width
-        world_height: int = game_message.constants.world.height
-        cannon_position: Vector = game_message.cannon.position
-
-        target_meteor: Meteor = self.select_target_meteor(game_message.meteors, cannon_position, world_width, world_height)
+        target_meteor: Meteor = self.select_target_meteor(game_message.meteors, game_message)
         if target_meteor is None:
-            return [] # Maybe fallback to shooting at random meteor
+            fallback_move_action = self.get_fallback_strategy_action(game_message)
+            return [fallback_move_action, ShootAction()] 
 
-        cannon_move_action = self.get_cannon_move_action(target_meteor, game_message.cannon.position, game_message.constants.rockets.speed, game_message.cannon.orientation)
+        cannon_move_action = self.get_cannon_move_action(target_meteor, game_message)
         if cannon_move_action is None:
-            return [] # Maybe fallback to shooting at random meteor
+            fallback_move_action = self.get_fallback_strategy_action(game_message)
+            return [fallback_move_action, ShootAction()] 
 
         return [
             cannon_move_action,
@@ -28,8 +26,9 @@ class Bot:
         ]
 
 
+    def select_target_meteor(self, meteors: list[Meteor], game_message: GameMessage) -> Meteor:
+        cannon_position: Vector = game_message.cannon.position
 
-    def select_target_meteor(self, meteors: list[Meteor], cannon_position: Vector, world_width: int, world_height: int) -> Meteor:
         sorted_meteors: list[Meteor] = sorted(meteors, key=lambda meteor: meteor.position.x)
 
         target_meteor = None
@@ -41,7 +40,11 @@ class Bot:
         return target_meteor
     
 
-    def get_cannon_move_action(self, target_meteor: Meteor, cannon_position: Vector, rocket_speed: float, current_cannon_orientation: float) -> LookAtAction | RotateAction:
+    def get_cannon_move_action(self, target_meteor: Meteor, game_message: GameMessage) -> LookAtAction | RotateAction:
+        cannon_position: Vector = game_message.cannon.position
+        current_cannon_orientation = game_message.cannon.orientation
+        rocket_speed = game_message.constants.rockets.speed
+        
         target_angle: float = self.compute_target_angle(target_meteor.position, target_meteor.velocity, cannon_position, rocket_speed)
         if target_angle is None:
             return None
@@ -67,3 +70,8 @@ class Bot:
         
         return degrees(angle)
         
+
+    def get_fallback_strategy_action(self, game_message: GameMessage) -> LookAtAction | RotateAction:
+        sorted_meteors: list[Meteor] = sorted(game_message.meteors, key=lambda meteor: meteor.position.x)
+        
+        return LookAtAction(sorted_meteors[0]) 
