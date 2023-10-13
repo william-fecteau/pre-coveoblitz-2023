@@ -3,6 +3,7 @@ from actions import *
 from math import atan, sqrt, pi, degrees
 class Bot:
     def __init__(self):
+        self.targetted_meteor_ids: list[int] = []
         print("Initializing VAUL domination...")
 
     def get_next_move(self, game_message: GameMessage):
@@ -10,16 +11,19 @@ class Bot:
         if game_message.cannon.cooldown > 0:
             return []
 
+        # Targetting a meteor
         target_meteor: Meteor = self.select_target_meteor(game_message.meteors, game_message)
         if target_meteor is None:
             fallback_move_action = self.get_fallback_strategy_action(game_message)
             return [fallback_move_action, ShootAction()] 
 
+        # Moving the cannon to hit the targetted meteor
         cannon_move_action = self.get_cannon_move_action(target_meteor, game_message)
         if cannon_move_action is None:
             fallback_move_action = self.get_fallback_strategy_action(game_message)
             return [fallback_move_action, ShootAction()] 
 
+        
         return [
             cannon_move_action,
             ShootAction()
@@ -31,11 +35,17 @@ class Bot:
 
         sorted_meteors: list[Meteor] = sorted(meteors, key=lambda meteor: meteor.position.x)
 
-        target_meteor = None
+        buffer_distance: float = 200.0
+        min_x_to_shoot: float = cannon_position.x + buffer_distance
+
+        target_meteor: Meteor = None
         for meteor in sorted_meteors:
-            if meteor.position.x > cannon_position.x:
+            if meteor.position.x > min_x_to_shoot and meteor.id not in self.targetted_meteor_ids:
                 target_meteor = meteor
                 break
+        
+        if target_meteor is not None:
+            self.targetted_meteor_ids.append(target_meteor.id)
 
         return target_meteor
     
