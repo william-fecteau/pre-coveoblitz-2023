@@ -6,7 +6,7 @@ import numpy as np
 
 class Bot:
     def __init__(self):
-        self.targetted_meteor_ids: list[int] = []
+        self.targetted_meteor_ids: list[int] = {}
         self.target_queue: list[Meteor] = []
         self.game_bounds: list[int] = []
         self.large_meteor_uncertainty: float = 0.35
@@ -29,6 +29,9 @@ class Bot:
         print(f'==============================================Tick {game_message.tick}==============================================')
         print(f'Current score: {game_message.score}')
 
+        # Only do child_meteor when its worth it
+        child_computation_thresold = game_message.cannon.position.x + game_message.constants.rockets.speed * game_message.constants.cannonCooldownTicks + 100
+
         # Targetting a meteor
         if self.target_queue:
             target_meteor: Meteor = self.target_queue.pop(0)
@@ -39,13 +42,14 @@ class Bot:
             if target_meteor is None:
                 print('self.select_target_meteor returned null. Defaulting to no-op')
                 return [] 
-            # Only do child_meteor computation if we have a medium/large meteor in the second half of the screen
-            elif target_meteor.meteorType in [MeteorType.Medium, MeteorType.Large] and target_meteor.position.x > 400:
+            elif target_meteor.meteorType in [MeteorType.Medium, MeteorType.Large] and target_meteor.position.x > child_computation_thresold:
                 collision_time: float = self.estimate_collision_time(target_meteor, game_message.tick, game_message)
                 self.target_child_meteors(target_meteor, collision_time, game_message)
         
+
         # Updating the targeted ids
-        self.update_targeted_ids(target_meteor.id, game_message.meteors)
+        collision_tick = self.estimate_collision_time(target_meteor, game_message.tick, game_message)
+        self.update_targeted_ids(target_meteor.id, collision_tick, game_message)
 
         # Moving the cannon to hit the targetted meteor   
         print(f'Shooting at {target_meteor.meteorType} meteor at position ({round(target_meteor.position.x)},{round(target_meteor.position.y)})')   
@@ -108,12 +112,18 @@ class Bot:
                 self.target_child_meteors(child_meteor, child_collision_time, game_message)
 
 
-    def update_targeted_ids(self, target_id, meteors: list[Meteor]) -> None:
-        for id in self.targetted_meteor_ids:
-            if id not in [meteor.id for meteor in meteors]:
-                self.targetted_meteor_ids.remove(id)
-        if target_id not in self.targetted_meteor_ids:
-            self.targetted_meteor_ids.append(target_id)
+    def update_targeted_ids(self, target_id, target_collision_tick: int, game_message: GameMessage) -> None:
+        current_tick = game_message.tick
+        keys_to_delete = []
+        for id, collision_tick in self.targetted_meteor_ids.items():
+            if current_tick > collision_tick:
+                keys_to_delete.append(id)
+
+        for key in keys_to_delete:
+            del self.targetted_meteor_ids[key]
+
+        if target_id not in self.targetted_meteor_ids.keys():
+            self.targetted_meteor_ids[target_id] = target_collision_tick
 
 
     def get_collision_position(self, p0_meteor: Vector, v_meteor: Vector, p0_rocket: Vector, v_rocket: float, 
