@@ -15,8 +15,6 @@ class Bot:
         print("Initializing VAUL domination...")
 
     def get_next_move(self, game_message: GameMessage) -> list[LookAtAction | RotateAction | ShootAction]:
-        #print(f"Score: {game_message.score}")
-
         if not self.game_bounds:
             self.game_bounds = [
                 game_message.cannon.position.x + 0, 
@@ -28,22 +26,29 @@ class Bot:
         if game_message.cannon.cooldown > 0:
             return []
 
+        print(f'==============================================Tick {game_message.tick}==============================================')
+        print(f'Current score: {game_message.score}')
+
         # Targetting a meteor
         if self.target_queue:
             target_meteor: Meteor = self.target_queue.pop(0)
+            print(f'Popping target queue. {len(self.target_queue)} meteors still in target queue')
         else:
             meteors_collisions: list[Meteor] = self.compute_meteors_collisions(game_message)
             target_meteor: Meteor = self.select_target_meteor(meteors_collisions)
             if target_meteor is None:
+                print('self.select_target_meteor returned null. Defaulting to no-op')
                 return [] 
-            elif target_meteor.meteorType in [MeteorType.Medium, MeteorType.Large]:
+            # Only do child_meteor computation if we have a medium/large meteor in the second half of the screen
+            elif target_meteor.meteorType in [MeteorType.Medium, MeteorType.Large] and target_meteor.position.x > 400:
                 collision_time: float = self.estimate_collision_time(target_meteor, game_message.tick, game_message)
                 self.target_child_meteors(target_meteor, collision_time, game_message)
         
         # Updating the targeted ids
         self.update_targeted_ids(target_meteor.id, game_message.meteors)
 
-        # Moving the cannon to hit the targetted meteor      
+        # Moving the cannon to hit the targetted meteor   
+        print(f'Shooting at {target_meteor.meteorType} meteor at position ({round(target_meteor.position.x)},{round(target_meteor.position.y)})')   
         return [
             LookAtAction(target_meteor.position),
             ShootAction()
@@ -60,6 +65,8 @@ class Bot:
                 meteor_copy: Meteor = copy.deepcopy(meteor)
                 meteor_copy.position = collision_point
                 meteors_collisions.append(meteor_copy)
+            else:
+                print(f'Skipping collision computation for {meteor.meteorType} at position ({round(meteor.position.x)},{round(meteor.position.y)})')
         return meteors_collisions
     
 
@@ -96,6 +103,7 @@ class Bot:
                                                                         game_message.constants.rockets.speed, parent_collision_time, launch_time)
             if self.is_inside_bounds(child_meteor.position) and self.uncertainty_check(child_meteor, parent_meteor.position, game_message):
                 self.target_queue.append(child_meteor)
+                print(f'Added {child_meteor.meteorType} meteor colliding at position ({round(child_meteor.position.x)},{round(child_meteor.position.y)}) to target_queue')
                 child_collision_time: float = self.estimate_collision_time(child_meteor, launch_time, game_message)
                 self.target_child_meteors(child_meteor, child_collision_time, game_message)
 
