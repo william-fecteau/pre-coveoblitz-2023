@@ -82,6 +82,8 @@ class Bot:
                 meteor_copy: Meteor = copy.deepcopy(meteor)
                 meteor_copy.position = collision_point
                 meteors_collisions.append(meteor_copy)
+            else:
+                print(f'Skipping collision computation for {meteor.meteorType} at position ({round(meteor.position.x)},{round(meteor.position.y)})')
         return meteors_collisions
     
 
@@ -144,6 +146,7 @@ class Bot:
             and self.is_inside_bounds(child_meteor.position) \
             and self.uncertainty_check(child_meteor, parent_meteor.position, game_message):        
                 self.target_queue.append(child_meteor)
+                print(f'Added {child_meteor.meteorType} meteor colliding at position ({round(child_meteor.position.x)},{round(child_meteor.position.y)}) to target_queue')
                 child_collision_time: float = self.estimate_collision_time(child_meteor, launch_time, game_message)
                 self.target_child_meteors(child_meteor, child_collision_time, game_message)
 
