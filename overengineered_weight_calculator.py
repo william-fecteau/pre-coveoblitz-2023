@@ -15,10 +15,10 @@ class VectorField:
         return 1 / (1 + np.exp(self.k * (x - self.m)))
 
     @lru_cache(maxsize=None)
-    def compute_field(self, x, y):
+    def compute_field(self, x, y, epsilon=1e-10):
         relative_x = x - self.a_x
         relative_y = y - self.a_y
-        magnitude = np.sqrt(relative_x ** 2 + relative_y ** 2)
+        magnitude = np.sqrt(relative_x ** 2 + relative_y ** 2 + epsilon)
         fx = self._f(x)
         v_x = -fx * relative_x / magnitude
         v_y = -fx * relative_y / magnitude
