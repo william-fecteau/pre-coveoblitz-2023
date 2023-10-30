@@ -83,9 +83,7 @@ class WeightCalculator:
         divergence_weight = self._divergence_weight(x, y, velocity_x, velocity_y)
         closest_weight = self._closest_meteor_weight(x, y)
         combined_value = divergence_weight_factor * divergence_weight + closest_weight * distance_weight_factor
-        to_print = 1 / (1 + np.exp(-20.0 * (combined_value - 1.0)))
-        print(to_print)
-        return to_print
+        return 1 / (1 + np.exp(-20.0 * (combined_value - 1.0)))
 
     def compute_weight(self, type_meteor: str, x, y, velocity_x, velocity_y) -> float:
         if type_meteor in ['LARGE', 'MEDIUM']:
