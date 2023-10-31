@@ -39,6 +39,7 @@ def get_collision_position(p0_meteor: Vector, v_meteor: Vector, p0_rocket: Vecto
     rocket_lead: float = t0_meteor - t0_rocket
     if rocket_lead < 0:
         return None
+
     delta_t: float = 0.0
     rate: float = 0.02
     error: float = 1000.0

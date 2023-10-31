@@ -14,6 +14,12 @@ def select_target(predicted_collisions: list[PredictedCollision], game_message: 
     in_bounds_collisions: list[PredictedCollision] = [
         collision for collision in predicted_collisions if is_inside_bounds(collision.collision_position, game_bounds)]
 
+    # If we have a child collision, we should target it
+    child_collisions = [
+        collision for collision in in_bounds_collisions if collision.parent_meteor is not None]
+    if child_collisions:
+        return child_collisions[0]
+
     small_collisions: list[PredictedCollision] = [
         collision for collision in in_bounds_collisions if collision.meteor.meteorType == MeteorType.Small]
     medium_collisions: list[PredictedCollision] = [
