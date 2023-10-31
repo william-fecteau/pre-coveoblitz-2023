@@ -22,6 +22,10 @@ def get_pending_collisions(last_shot: PredictedCollision | None, pending_collisi
         if not does_meteor_id_exists(collision.meteor.id, game_message):
             continue
 
+        if collision.meteor.id == -1:
+            # TODO: Try to find the child meteor or else we won't be able to calculate child_collisions for it
+            continue
+
         are_colliding, collision_time = will_collide(
             collision.rocket, collision.meteor)
         if not are_colliding:
@@ -102,7 +106,7 @@ def will_collide(rocket: Projectile, meteor: Meteor) -> bool:
 
 def does_meteor_id_exists(meteor_id: int, game_message: GameMessage) -> bool:
     if meteor_id == -1:
-        return True  # TODO: We need to properly handle child meteors
+        return True  # Child meteor, it might not have spawned yet
 
     return meteor_id in [meteor.id for meteor in game_message.meteors]
 
